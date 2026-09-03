@@ -57,6 +57,27 @@ jobs:
           ref: ${{ inputs.commit_sha }}
           persist-credentials: false
 
+      - name: Print OIDC claim coordinates (temporary diagnostic)
+        # Token 자체는 출력하지 않는다. AWS trust 조건과 대조할 claim 좌표만 남긴다.
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          import urllib.request
+
+          request = urllib.request.Request(
+              f"{os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']}&audience=sts.amazonaws.com",
+              headers={"Authorization": f"Bearer {os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}"},
+          )
+          with urllib.request.urlopen(request) as response:
+              token = json.load(response)["value"]
+          payload = token.split(".")[1]
+          payload += "=" * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload))
+          print(json.dumps({key: claims.get(key) for key in ("iss", "aud", "sub")}, sort_keys=True))
+          PY
+
       - name: Configure AWS credentials via OIDC (plan role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
