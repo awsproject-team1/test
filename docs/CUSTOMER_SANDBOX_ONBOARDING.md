@@ -15,7 +15,7 @@ The customer administrator supplies the following through the approved customer 
 | Reviewers | Nominate Terraform and security reviewers | Apply requires at least one reviewer who is not the workflow initiator. |
 | Region | Select the approved sandbox Region | It matches the platform's approved model profile; currently `us-east-1`. |
 | State backend | Create a state S3 bucket and DynamoDB lock table | Bucket is versioned, encrypted, TLS-only, and bucket-owner-enforced; lock table is dedicated to Terraform state. |
-| OIDC roles | Create separate Plan and Apply roles | Each trust policy is limited to the exact repository and allowed GitHub OIDC subject; neither is an administrator role. |
+| OIDC roles | Create separate Plan and Apply roles | Each trust policy is limited to the exact repository and allowed GitHub OIDC subject; neither is an administrator role. If the Organization customizes OIDC subjects, use the immutable-ID `sub` actually issued by GitHub. |
 | GitHub Environments | Create `customer-terraform-plan` and protected `customer-terraform-apply` | Apply has required reviewers; each role trust matches its exact Environment subject. Both hold the same state backend variables. |
 | Platform connection | Approve the GitHub App installation and a read credential for workflow/run/artifact verification | App has `contents: write` and `pull_requests: write` only; it does not have `workflows: write`. |
 

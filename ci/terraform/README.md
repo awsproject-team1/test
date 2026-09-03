@@ -17,7 +17,9 @@ template이다. Platform(GitHub App)은 이 파일을 만들거나 수정하지 
   `(repository_id, workspace)`로 분리하고 workspace 이름은 `{customer_id}-{repository_id}`다.
 - **OIDC Role (ADR-0007, §6):** plan job은 `TerraformPlanRole`, apply job은
   `TerraformDeploymentRole`을 assume한다. OIDC trust는 exact repository와 exact environment
-  subject로 제한한다.
+  subject로 제한한다. Organization이 custom OIDC subject template을 사용하면 repository 이름
+  대신 immutable organization/repository ID가 포함될 수 있으므로, GitHub가 실제 발급한 `sub` claim을
+  trust policy에 그대로 사용한다.
 - **Protected Environment (§6):** apply job은 required reviewers가 붙은 protected Environment를
   2차 게이트로 둔다. plan job도 별도 `customer-terraform-plan` Environment를 사용해 OIDC
   subject와 backend 변수를 고정한다.
