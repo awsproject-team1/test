@@ -16,7 +16,7 @@ The customer administrator supplies the following through the approved customer 
 | Region | Select the approved sandbox Region | It matches the platform's approved model profile; currently `us-east-1`. |
 | State backend | Create a state S3 bucket and DynamoDB lock table | Bucket is versioned, encrypted, TLS-only, and bucket-owner-enforced; lock table is dedicated to Terraform state. |
 | OIDC roles | Create separate Plan and Apply roles | Each trust policy is limited to the exact repository and allowed GitHub OIDC subject; neither is an administrator role. |
-| GitHub Environment | Create protected `customer-terraform-apply` | It has required reviewers and the Apply role trust matches its exact Environment subject. |
+| GitHub Environments | Create `customer-terraform-plan` and protected `customer-terraform-apply` | Apply has required reviewers; each role trust matches its exact Environment subject. Both hold the same state backend variables. |
 | Platform connection | Approve the GitHub App installation and a read credential for workflow/run/artifact verification | App has `contents: write` and `pull_requests: write` only; it does not have `workflows: write`. |
 
 The customer owns workload-specific IAM permissions. A generic template cannot know which AWS services their Terraform will manage, so it must not grant `AdministratorAccess` or wildcard write access merely to make a first run easier.
@@ -27,7 +27,7 @@ Copy the directory [`templates/customer-sandbox-terraform-repository`](../templa
 
 Before a first pull request, the customer administrator must:
 
-1. Replace the example backend values with the customer-controlled state bucket, DynamoDB table, Region, and a state key derived from the customer/repository workspace.
+1. Replace the example backend values with the customer-controlled state bucket, DynamoDB table, Region, and a state key derived from the customer/repository workspace. Keep the completed local `backend.hcl` untracked.
 2. Choose a globally unique, non-sensitive value for `sandbox_bucket_name` in a protected customer variable source. Do not put customer names, policy text, or production identifiers in it.
 3. Run `terraform init -backend-config=backend.hcl` and `terraform providers lock` in the customer-controlled repository, then commit the resulting `.terraform.lock.hcl`. This lock file is mandatory for reproducible plans.
 4. Copy these platform-owned files without changing their security semantics:
@@ -38,8 +38,8 @@ Before a first pull request, the customer administrator must:
    | `ci/terraform/terraform-apply.yml` | `.github/workflows/terraform-apply.yml` |
    | `ci/terraform/canonical_plan_hash.py` | `ci/terraform/canonical_plan_hash.py` |
 
-5. Replace only the marked workflow placeholders: Region, Plan role ARN, and Apply role ARN. Keep Terraform `1.9.5`, the saved-plan-only apply, plan hash verification, and state `lineage`/`serial` verification unchanged.
-6. Configure the `customer-terraform-apply` GitHub Environment with required reviewers before enabling workflow dispatch.
+5. Add GitHub Environment variables. `customer-terraform-plan` needs `AWS_REGION`, `TF_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_STATE_KEY`, and `TF_LOCK_TABLE`; `customer-terraform-apply` needs the same values except `TF_APPLY_ROLE_ARN` replaces `TF_PLAN_ROLE_ARN`. The state values must be identical in both Environments.
+6. Configure the `customer-terraform-apply` GitHub Environment with required reviewers before enabling workflow dispatch. Keep Terraform `1.9.5`, the saved-plan-only apply, plan hash verification, and state `lineage`/`serial` verification unchanged.
 
 The templates are explained in [the Terraform workflow guide](../ci/terraform/README.md). The Foundation application deployment has a separate customer bootstrap and runbook; do not treat this Terraform workload state backend as Foundation state.
 
