@@ -1,6 +1,6 @@
 # Customer sandbox Terraform repository starter
 
-Copy these files into a new, customer-owned private repository. They are a non-deploying starter only: the customer must supply the state backend, a globally unique bucket name, reviewer-approved OIDC roles, and a generated `.terraform.lock.hcl` before any workflow is run.
+Copy these files into a new, customer-owned private repository. They are a non-deploying starter only: the customer must supply the state backend, a globally unique bucket name, reviewer-approved OIDC roles, and a generated `.terraform.lock.hcl` before any workflow is run. A public repository is allowed only for an explicitly approved disposable test with no customer data, credentials, policy material, state file, or production configuration.
 
 This starter creates a single secure S3 baseline, not a production workload. It deliberately does not include account IDs, role ARNs, credentials, state, or a committed provider lock file.
 

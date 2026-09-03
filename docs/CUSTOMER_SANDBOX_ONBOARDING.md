@@ -2,7 +2,7 @@
 
 This document is the request package for a customer's first protected sandbox deployment. It starts before a Terraform workload or AWS workload resource exists. The platform repository never stores the customer's account ID, role ARNs, state bucket name, GitHub token, Terraform variables, policy originals, or Terraform state.
 
-The customer creates a separate, customer-owned Terraform repository. Do not run the template in this repository, and do not use a production account for the first exercise.
+The customer creates a separate, customer-owned Terraform repository. Do not run the template in this repository, and do not use a production account for the first exercise. A real customer repository must be private. A public repository is permitted only for an explicitly approved disposable test, with no customer identifiers, credentials, policy material, state file, or production configuration.
 
 ## 1. Customer decision and evidence request
 
@@ -11,7 +11,7 @@ The customer administrator supplies the following through the approved customer 
 | Item | Customer action | Acceptance condition |
 | --- | --- | --- |
 | Sandbox boundary | Select an AWS sandbox account and an owner | It is separate from production and approved for creating an S3 test bucket. |
-| Terraform repository | Create an empty private IaC repository and name its default branch | The customer owns administration and branch protection. |
+| Terraform repository | Create an empty private IaC repository and name its default branch | The customer owns administration and branch protection. A public repository is a test-only exception under the boundary above. |
 | Reviewers | Nominate Terraform and security reviewers | Apply requires at least one reviewer who is not the workflow initiator. |
 | Region | Select the approved sandbox Region | It matches the platform's approved model profile; currently `us-east-1`. |
 | State backend | Create a state S3 bucket and DynamoDB lock table | Bucket is versioned, encrypted, TLS-only, and bucket-owner-enforced; lock table is dedicated to Terraform state. |
