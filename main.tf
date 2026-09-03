@@ -28,13 +28,16 @@ resource "aws_s3_bucket" "sandbox" {
   force_destroy = false
 }
 
+# NOTE: E2E fixture — intentionally disables S3 public-access protections to
+# produce an S3-PUBLIC-001 finding for the finding→remediation closed loop.
+# Remediation should restore all four flags to true.
 resource "aws_s3_bucket_public_access_block" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_ownership_controls" "sandbox" {
