@@ -38,7 +38,7 @@ Before a first pull request, the customer administrator must:
    | `ci/terraform/terraform-apply.yml` | `.github/workflows/terraform-apply.yml` |
    | `ci/terraform/canonical_plan_hash.py` | `ci/terraform/canonical_plan_hash.py` |
 
-5. Add GitHub Environment variables. `customer-terraform-plan` needs `AWS_REGION`, `TF_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_STATE_KEY`, and `TF_LOCK_TABLE`; `customer-terraform-apply` needs the same values except `TF_APPLY_ROLE_ARN` replaces `TF_PLAN_ROLE_ARN`. The state values must be identical in both Environments.
+5. Add GitHub Environment variables. `customer-terraform-plan` needs `AWS_REGION`, `TF_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_STATE_KEY`, `TF_LOCK_TABLE`, and `SANDBOX_BUCKET_NAME`; `customer-terraform-apply` needs the same values except `TF_APPLY_ROLE_ARN` replaces `TF_PLAN_ROLE_ARN`. The state values and bucket name must be identical in both Environments.
 6. Configure the `customer-terraform-apply` GitHub Environment with required reviewers before enabling workflow dispatch. Keep Terraform `1.9.5`, the saved-plan-only apply, plan hash verification, and state `lineage`/`serial` verification unchanged.
 
 The templates are explained in [the Terraform workflow guide](../ci/terraform/README.md). The Foundation application deployment has a separate customer bootstrap and runbook; do not treat this Terraform workload state backend as Foundation state.
