@@ -4,7 +4,7 @@ Copy these files into a new, customer-owned private repository. They are a non-d
 
 This disposable customer sandbox contains the original S3 assessment target plus deliberately non-compliant EC2, RDS, and ALB targets. The extra resources exist to exercise multi-resource IaC policy evaluation; they are not a production workload. The repository contains no account IDs, credentials, policy text, state, or customer data.
 
-The multi-resource fixture is plan-first. A Terraform plan may be generated through the `customer-terraform-plan` environment, but creating the resources would incur AWS charges and therefore requires a separate protected `customer-terraform-apply` approval. Availability Zones are explicit inputs so the restricted plan role does not need account-wide discovery permissions. The EC2 image defaults to AWS's public Amazon Linux 2023 Systems Manager reference; pin `assessment_image_id` to the resolved AMI before approving an apply.
+The multi-resource fixture is plan-first. A Terraform plan may be generated through the `customer-terraform-plan` environment, but creating the resources would incur AWS charges and therefore requires a separate protected `customer-terraform-apply` approval. Availability Zones are explicit inputs so the restricted plan role does not need account-wide discovery permissions. The EC2 image is resolved at plan/apply time from AWS's public Amazon Linux 2023 AMIs via an `aws_ami` data source, so no manual AMI pin is required.
 
 Expected policy violations:
 
