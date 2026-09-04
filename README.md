@@ -2,17 +2,7 @@
 
 Copy these files into a new, customer-owned private repository. They are a non-deploying starter only: the customer must supply the state backend, a globally unique bucket name, reviewer-approved OIDC roles, and a generated `.terraform.lock.hcl` before any workflow is run. A public repository is allowed only for an explicitly approved disposable test with no customer data, credentials, policy material, state file, or production configuration.
 
-This disposable customer sandbox contains the original S3 assessment target plus deliberately non-compliant EC2, RDS, and ALB targets. The extra resources exist to exercise multi-resource IaC policy evaluation; they are not a production workload. The repository contains no account IDs, credentials, policy text, state, or customer data.
-
-The multi-resource fixture is plan-first. A Terraform plan may be generated through the `customer-terraform-plan` environment, but creating the resources would incur AWS charges and therefore requires a separate protected `customer-terraform-apply` approval. The first plan resolves an Amazon Linux 2023 AMI dynamically; pin that AMI before approving an apply.
-
-Expected policy violations:
-
-- EC2: public IP requested in a private subnet, unrestricted SSH/HTTP ingress, and unencrypted root EBS.
-- RDS: public accessibility, unrestricted MySQL ingress, storage encryption disabled, IAM DB authentication disabled, and log exports disabled.
-- ALB: public plaintext HTTP listener and access logging disabled.
-
-`terraform output assessment_resources` returns the four resource coordinates needed by the platform's protected assessment runtime configuration after an approved apply.
+This starter creates a single secure S3 baseline, not a production workload. It deliberately does not include account IDs, role ARNs, credentials, state, or a committed provider lock file.
 
 ## Install
 
