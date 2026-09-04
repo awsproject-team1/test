@@ -92,27 +92,13 @@ resource "aws_security_group" "ec2" {
   tags = { Name = "${local.multiresource_name}-ec2" }
 }
 
-# Resolve the latest Amazon Linux 2023 x86_64 AMI at plan/apply time. Terraform
-# cannot consume the EC2/CloudFormation "resolve:ssm:" pseudo-reference in an
-# aws_instance.ami argument, so query the AMI directly. This removes the manual
-# "pin assessment_image_id before apply" step while keeping the image AWS-owned.
-data "aws_ami" "al2023" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-x86_64"]
-  }
-
-  filter {
-    name   = "state"
-    values = ["available"]
-  }
-}
-
+# The EC2 AMI is pinned to a resolved ami-... value. Terraform cannot consume
+# the EC2/CloudFormation "resolve:ssm:" pseudo-reference in an aws_instance.ami
+# argument. The restricted plan role also has no ec2:DescribeImages permission,
+# so the AMI cannot be discovered at plan time; the value is supplied via
+# image.auto.tfvars.
 resource "aws_instance" "assessment" {
-  ami           = data.aws_ami.al2023.id
+  ami           = var.assessment_image_id
   instance_type = "t3.micro"
 
   # The private subnet intentionally has no Internet route. A public address is
