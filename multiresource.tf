@@ -102,9 +102,12 @@ resource "aws_instance" "assessment" {
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   associate_public_ip_address = true
 
+  # volume_size must be >= the AMI's root snapshot size (Amazon Linux 2023 is
+  # 30 GiB); a smaller value fails RunInstances with InvalidBlockDeviceMapping.
+  # encrypted = false is the intentional violation, not the size.
   root_block_device {
     volume_type = "gp3"
-    volume_size = 8
+    volume_size = 30
     encrypted   = false
   }
 
