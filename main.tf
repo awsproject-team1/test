@@ -229,7 +229,7 @@ resource "aws_db_instance" "assessment" {
   db_subnet_group_name   = aws_db_subnet_group.assessment.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  publicly_accessible                 = true
+  publicly_accessible                 = false
   storage_encrypted                   = false
   iam_database_authentication_enabled = false
   enabled_cloudwatch_logs_exports     = []
