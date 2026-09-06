@@ -13,10 +13,10 @@ resource "aws_s3_bucket" "sandbox" {
 resource "aws_s3_bucket_public_access_block" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 # S3-ACL-001 위반: ObjectWriter는 ACL 기반 접근을 허용한다(BucketOwnerEnforced 아님).
