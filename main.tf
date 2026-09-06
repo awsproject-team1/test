@@ -1,73 +1,40 @@
-data "aws_iam_policy_document" "sandbox_bucket_tls_only" {
-  statement {
-    sid    = "DenyInsecureTransport"
-    effect = "Deny"
-
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-
-    actions = ["s3:*"]
-
-    resources = [
-      aws_s3_bucket.sandbox.arn,
-      "${aws_s3_bucket.sandbox.arn}/*",
-    ]
-
-    condition {
-      test     = "Bool"
-      variable = "aws:SecureTransport"
-      values   = ["false"]
-    }
-  }
-}
+# =============================================================================
+# DEMO FIXTURE — intentionally non-compliant across S3/EC2/RDS/ALB.
+# 격리된 sandbox 계정 전용. 거버넌스 폐루프(위반→Finding→조치→재평가) 시연용.
+# 시연 후 반드시 `terraform destroy`로 정리한다. 프로덕션에 두지 않는다.
+# =============================================================================
 
 resource "aws_s3_bucket" "sandbox" {
   bucket        = var.sandbox_bucket_name
-  force_destroy = false
+  force_destroy = true
 }
 
-# NOTE: E2E fixture — intentionally disables S3 public-access protections to
-# produce an S3-PUBLIC-001 finding for the finding→remediation closed loop.
-# Remediation should restore all four flags to true.
+# S3-PUBLIC-001 위반: 네 플래그 모두 false → Block Public Access 해제.
 resource "aws_s3_bucket_public_access_block" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
+# S3-ACL-001 위반: ObjectWriter는 ACL 기반 접근을 허용한다(BucketOwnerEnforced 아님).
 resource "aws_s3_bucket_ownership_controls" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
   rule {
-    object_ownership = "BucketOwnerEnforced"
+    object_ownership = "ObjectWriter"
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "sandbox" {
-  bucket = aws_s3_bucket.sandbox.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "sandbox" {
-  bucket = aws_s3_bucket.sandbox.id
-  policy = data.aws_iam_policy_document.sandbox_bucket_tls_only.json
-}
+# S3-ENCRYPT-001 위반: 서버 측 암호화 구성을 두지 않는다(리소스 제거).
+# S3-TLS-001 위반: TLS 강제 bucket policy를 두지 않는다(리소스 제거).
+# S3-LOGGING-001 위반: 서버 액세스 로깅을 두지 않는다.
 
 # ---------------------------------------------------------------------------
-# Consolidated from multiresource.tf.
-# Deliberately non-compliant EC2, RDS, and ALB resources for the governance
-# platform's customer-sandbox assessment. This is a plan-first test fixture:
-# creating it requires the protected apply workflow and explicit human review.
+# EC2 / RDS / ALB — 의도적 위반. plan-first fixture: 생성에는 보호된 apply
+# workflow와 사람 검토가 필요하다.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -98,7 +65,6 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = false
 
   tags = { Name = "${local.multiresource_name}-public-${count.index + 1}" }
-
 }
 
 resource "aws_subnet" "private" {
@@ -134,6 +100,7 @@ resource "aws_security_group" "ec2" {
   description = "Intentionally broad ingress for governance assessment"
   vpc_id      = aws_vpc.multiresource.id
 
+  # EC2-SG-INGRESS-001 위반: SSH/HTTP를 0.0.0.0/0에 개방.
   ingress {
     description = "Intentional EC2-SG-INGRESS-001 violation"
     from_port   = 22
@@ -160,24 +127,16 @@ resource "aws_security_group" "ec2" {
   tags = { Name = "${local.multiresource_name}-ec2" }
 }
 
-# The EC2 AMI is pinned to a resolved ami-... value. Terraform cannot consume
-# the EC2/CloudFormation "resolve:ssm:" pseudo-reference in an aws_instance.ami
-# argument. The restricted plan role also has no ec2:DescribeImages permission,
-# so the AMI cannot be discovered at plan time; the value is supplied via
-# image.auto.tfvars.
 resource "aws_instance" "assessment" {
   ami           = var.assessment_image_id
   instance_type = "t3.micro"
 
-  # The private subnet intentionally has no Internet route. A public address is
-  # still requested so EC2-PUBLIC-IP-001 can evaluate the declared IaC setting.
+  # EC2-PUBLIC-IP-001 위반: 프라이빗 서브넷 인스턴스에 퍼블릭 IP 요청.
   subnet_id                   = aws_subnet.private[0].id
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   associate_public_ip_address = true
 
-  # volume_size must be >= the AMI's root snapshot size (Amazon Linux 2023 is
-  # 30 GiB); a smaller value fails RunInstances with InvalidBlockDeviceMapping.
-  # encrypted = false is the intentional violation, not the size.
+  # EC2-EBS-ENCRYPT-001 위반: 루트 볼륨 미암호화.
   root_block_device {
     volume_type = "gp3"
     volume_size = 30
@@ -197,6 +156,7 @@ resource "aws_security_group" "rds" {
   description = "Intentionally broad database ingress for governance assessment"
   vpc_id      = aws_vpc.multiresource.id
 
+  # RDS-ACCESS-001 위반: 3306을 0.0.0.0/0에 개방.
   ingress {
     description = "Intentional RDS-ACCESS-001 violation"
     from_port   = 3306
@@ -229,10 +189,13 @@ resource "aws_db_instance" "assessment" {
   db_subnet_group_name   = aws_db_subnet_group.assessment.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  publicly_accessible                 = false
+  # RDS-PUBLIC-001 위반: 퍼블릭 액세스 노출.
+  publicly_accessible = true
+  # RDS-ENCRYPT-001 위반: 저장 데이터 미암호화.
   storage_encrypted                   = false
   iam_database_authentication_enabled = false
-  enabled_cloudwatch_logs_exports     = []
+  # RDS-LOGGING-001 위반: 로그 export 없음.
+  enabled_cloudwatch_logs_exports = []
 
   backup_retention_period = 0
   deletion_protection     = false
@@ -272,7 +235,7 @@ resource "aws_lb" "assessment" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
-  # No access_logs block: intentional ALB-LOGGING-001 violation.
+  # ALB-LOGGING-001 위반: access_logs 블록 없음.
   tags = { Name = "${local.multiresource_name}-alb" }
 }
 
@@ -281,6 +244,7 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
 
+  # ALB-HTTPS-001 위반: HTTPS가 아닌 평문 HTTP 리스너.
   default_action {
     type = "fixed-response"
 
