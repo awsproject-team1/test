@@ -9,24 +9,68 @@ resource "aws_s3_bucket" "sandbox" {
   force_destroy = true
 }
 
-# S3-PUBLIC-001 위반: 네 플래그 모두 false → Block Public Access 해제.
+# S3-PUBLIC-001 위반(유일한 S3 위반): 네 플래그 모두 false. 조치는 이 값을 true로 되돌리는
+# in-place 변경이라 파괴적이지 않다 — WAITING_APPROVAL -> 승인 -> apply 폐루프 시연용.
 resource "aws_s3_bucket_public_access_block" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
-# S3-ACL-001 위반: ObjectWriter는 ACL 기반 접근을 허용한다(BucketOwnerEnforced 아님).
+# 준수: 실제 AWS 상태(BucketOwnerEnforced)와 일치시켜 plan이 삭제/재생성을 만들지 않게 한다.
 resource "aws_s3_bucket_ownership_controls" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
   rule {
-    object_ownership = "ObjectWriter"
+    object_ownership = "BucketOwnerEnforced"
   }
 }
+
+# 준수: 실제 AWS의 AES256 암호화와 일치.
+resource "aws_s3_bucket_server_side_encryption_configuration" "sandbox" {
+  bucket = aws_s3_bucket.sandbox.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# 준수: 실제 AWS의 TLS-only bucket policy와 일치.
+data "aws_iam_policy_document" "sandbox_bucket_tls_only" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+
+    resources = [
+      aws_s3_bucket.sandbox.arn,
+      "${aws_s3_bucket.sandbox.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "sandbox" {
+  bucket = aws_s3_bucket.sandbox.id
+  policy = data.aws_iam_policy_document.sandbox_bucket_tls_only.json
+}
+
 
 # S3-ENCRYPT-001 위반: 서버 측 암호화 구성을 두지 않는다(리소스 제거).
 # S3-TLS-001 위반: TLS 강제 bucket policy를 두지 않는다(리소스 제거).
