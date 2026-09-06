@@ -14,10 +14,10 @@ resource "aws_s3_bucket" "sandbox" {
 resource "aws_s3_bucket_public_access_block" "sandbox" {
   bucket = aws_s3_bucket.sandbox.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
 # 준수: 실제 AWS 상태(BucketOwnerEnforced)와 일치시켜 plan이 삭제/재생성을 만들지 않게 한다.
