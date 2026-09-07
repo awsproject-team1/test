@@ -234,7 +234,7 @@ resource "aws_db_instance" "assessment" {
   vpc_security_group_ids = [aws_security_group.rds.id]
 
   # RDS-PUBLIC-001 위반: 퍼블릭 액세스 노출.
-  publicly_accessible = true
+  publicly_accessible = false
   # RDS-ENCRYPT-001 위반: 저장 데이터 미암호화.
   storage_encrypted                   = false
   iam_database_authentication_enabled = false
